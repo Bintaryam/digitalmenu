@@ -105,7 +105,7 @@ export default function Home() {
             </div>
 
             <p className="mt-4 text-sm text-neutral-500">
-              Replace the WhatsApp number later with your business number.
+              
             </p>
           </div>
 

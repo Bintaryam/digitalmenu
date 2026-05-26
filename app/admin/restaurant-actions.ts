@@ -99,7 +99,7 @@ export async function createRestaurantAction(formData: FormData) {
   }
 
   revalidatePath("/admin");
-  redirect(`/admin/restaurants/${data.id}`);
+  redirect(`/admin/restaurants/${data.id}?success=Restaurant added`);
 }
 
 export async function updateRestaurantAction(restaurantId: string, formData: FormData) {
@@ -108,6 +108,7 @@ export async function updateRestaurantAction(restaurantId: string, formData: For
   const name = getString(formData, "name");
   const slug = getString(formData, "slug");
   const isActive = getBool(formData, "is_active");
+  const returnTo = getString(formData, "return_to") || `/admin/restaurants/${restaurantId}`;
 
   if (!name || !slug) {
     throw new Error("Restaurant name and slug are required.");
@@ -143,6 +144,8 @@ export async function updateRestaurantAction(restaurantId: string, formData: For
   revalidatePath("/admin");
   revalidatePath(`/admin/restaurants/${restaurantId}`);
   revalidatePath(`/menu/${slug}`);
+
+  redirect(`${returnTo}?success=Restaurant saved`);
 }
 
 export async function deleteRestaurantAction(restaurantId: string) {
@@ -158,5 +161,5 @@ export async function deleteRestaurantAction(restaurantId: string) {
   }
 
   revalidatePath("/admin");
-  redirect("/admin");
+  redirect("/admin?success=Restaurant deleted");
 }

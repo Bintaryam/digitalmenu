@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/adminAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -59,7 +60,11 @@ async function uploadPublicImage(path: string, file: File) {
   return data.publicUrl;
 }
 
-async function getNextSortOrder(table: "categories" | "menu_items", column: "restaurant_id" | "category_id", id: string) {
+async function getNextSortOrder(
+  table: "categories" | "menu_items",
+  column: "restaurant_id" | "category_id",
+  id: string
+) {
   const { data, error } = await supabaseAdmin
     .from(table)
     .select("sort_order")
@@ -74,7 +79,15 @@ async function getNextSortOrder(table: "categories" | "menu_items", column: "res
   return data?.[0]?.sort_order ? data[0].sort_order + 1 : 1;
 }
 
-export async function createCategoryAction(restaurantId: string, restaurantSlug: string, formData: FormData) {
+function adminRestaurantPath(restaurantId: string, message: string) {
+  return `/admin/restaurants/${restaurantId}?success=${encodeURIComponent(message)}`;
+}
+
+export async function createCategoryAction(
+  restaurantId: string,
+  restaurantSlug: string,
+  formData: FormData
+) {
   await requireAdmin();
 
   const name = getString(formData, "name");
@@ -85,14 +98,12 @@ export async function createCategoryAction(restaurantId: string, restaurantSlug:
 
   const nextSortOrder = await getNextSortOrder("categories", "restaurant_id", restaurantId);
 
-  const { error } = await supabaseAdmin
-    .from("categories")
-    .insert({
-      restaurant_id: restaurantId,
-      name,
-      sort_order: nextSortOrder,
-      is_active: true,
-    });
+  const { error } = await supabaseAdmin.from("categories").insert({
+    restaurant_id: restaurantId,
+    name,
+    sort_order: nextSortOrder,
+    is_active: true,
+  });
 
   if (error) {
     throw new Error(error.message);
@@ -100,9 +111,15 @@ export async function createCategoryAction(restaurantId: string, restaurantSlug:
 
   revalidatePath(`/admin/restaurants/${restaurantId}`);
   revalidatePath(`/menu/${restaurantSlug}`);
+  redirect(adminRestaurantPath(restaurantId, "Category added"));
 }
 
-export async function updateCategoryAction(categoryId: string, restaurantId: string, restaurantSlug: string, formData: FormData) {
+export async function updateCategoryAction(
+  categoryId: string,
+  restaurantId: string,
+  restaurantSlug: string,
+  formData: FormData
+) {
   await requireAdmin();
 
   const name = getString(formData, "name");
@@ -128,9 +145,14 @@ export async function updateCategoryAction(categoryId: string, restaurantId: str
 
   revalidatePath(`/admin/restaurants/${restaurantId}`);
   revalidatePath(`/menu/${restaurantSlug}`);
+  redirect(adminRestaurantPath(restaurantId, "Category saved"));
 }
 
-export async function deleteCategoryAction(categoryId: string, restaurantId: string, restaurantSlug: string) {
+export async function deleteCategoryAction(
+  categoryId: string,
+  restaurantId: string,
+  restaurantSlug: string
+) {
   await requireAdmin();
 
   const { error } = await supabaseAdmin
@@ -144,9 +166,15 @@ export async function deleteCategoryAction(categoryId: string, restaurantId: str
 
   revalidatePath(`/admin/restaurants/${restaurantId}`);
   revalidatePath(`/menu/${restaurantSlug}`);
+  redirect(adminRestaurantPath(restaurantId, "Category deleted"));
 }
 
-export async function moveCategoryAction(categoryId: string, restaurantId: string, restaurantSlug: string, direction: "up" | "down") {
+export async function moveCategoryAction(
+  categoryId: string,
+  restaurantId: string,
+  restaurantSlug: string,
+  direction: "up" | "down"
+) {
   await requireAdmin();
 
   const { data: categories, error } = await supabaseAdmin
@@ -164,7 +192,9 @@ export async function moveCategoryAction(categoryId: string, restaurantId: strin
   const index = categories.findIndex((category) => category.id === categoryId);
   const swapIndex = direction === "up" ? index - 1 : index + 1;
 
-  if (index < 0 || swapIndex < 0 || swapIndex >= categories.length) return;
+  if (index < 0 || swapIndex < 0 || swapIndex >= categories.length) {
+    redirect(adminRestaurantPath(restaurantId, "Category order unchanged"));
+  }
 
   const current = categories[index];
   const swap = categories[swapIndex];
@@ -189,9 +219,14 @@ export async function moveCategoryAction(categoryId: string, restaurantId: strin
 
   revalidatePath(`/admin/restaurants/${restaurantId}`);
   revalidatePath(`/menu/${restaurantSlug}`);
+  redirect(adminRestaurantPath(restaurantId, "Category moved"));
 }
 
-export async function createMenuItemAction(restaurantId: string, restaurantSlug: string, formData: FormData) {
+export async function createMenuItemAction(
+  restaurantId: string,
+  restaurantSlug: string,
+  formData: FormData
+) {
   await requireAdmin();
 
   const categoryId = getString(formData, "category_id");
@@ -245,9 +280,15 @@ export async function createMenuItemAction(restaurantId: string, restaurantSlug:
 
   revalidatePath(`/admin/restaurants/${restaurantId}`);
   revalidatePath(`/menu/${restaurantSlug}`);
+  redirect(adminRestaurantPath(restaurantId, "Item added"));
 }
 
-export async function updateMenuItemAction(itemId: string, restaurantId: string, restaurantSlug: string, formData: FormData) {
+export async function updateMenuItemAction(
+  itemId: string,
+  restaurantId: string,
+  restaurantSlug: string,
+  formData: FormData
+) {
   await requireAdmin();
 
   const categoryId = getString(formData, "category_id");
@@ -297,9 +338,14 @@ export async function updateMenuItemAction(itemId: string, restaurantId: string,
 
   revalidatePath(`/admin/restaurants/${restaurantId}`);
   revalidatePath(`/menu/${restaurantSlug}`);
+  redirect(adminRestaurantPath(restaurantId, "Item saved"));
 }
 
-export async function deleteMenuItemAction(itemId: string, restaurantId: string, restaurantSlug: string) {
+export async function deleteMenuItemAction(
+  itemId: string,
+  restaurantId: string,
+  restaurantSlug: string
+) {
   await requireAdmin();
 
   const { error } = await supabaseAdmin
@@ -313,9 +359,16 @@ export async function deleteMenuItemAction(itemId: string, restaurantId: string,
 
   revalidatePath(`/admin/restaurants/${restaurantId}`);
   revalidatePath(`/menu/${restaurantSlug}`);
+  redirect(adminRestaurantPath(restaurantId, "Item deleted"));
 }
 
-export async function moveMenuItemAction(itemId: string, restaurantId: string, restaurantSlug: string, categoryId: string, direction: "up" | "down") {
+export async function moveMenuItemAction(
+  itemId: string,
+  restaurantId: string,
+  restaurantSlug: string,
+  categoryId: string,
+  direction: "up" | "down"
+) {
   await requireAdmin();
 
   const { data: items, error } = await supabaseAdmin
@@ -333,7 +386,9 @@ export async function moveMenuItemAction(itemId: string, restaurantId: string, r
   const index = items.findIndex((item) => item.id === itemId);
   const swapIndex = direction === "up" ? index - 1 : index + 1;
 
-  if (index < 0 || swapIndex < 0 || swapIndex >= items.length) return;
+  if (index < 0 || swapIndex < 0 || swapIndex >= items.length) {
+    redirect(adminRestaurantPath(restaurantId, "Item order unchanged"));
+  }
 
   const current = items[index];
   const swap = items[swapIndex];
@@ -358,4 +413,5 @@ export async function moveMenuItemAction(itemId: string, restaurantId: string, r
 
   revalidatePath(`/admin/restaurants/${restaurantId}`);
   revalidatePath(`/menu/${restaurantSlug}`);
+  redirect(adminRestaurantPath(restaurantId, "Item moved"));
 }
